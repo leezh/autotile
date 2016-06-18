@@ -35,7 +35,7 @@ people's work in your project.
 
 ## License
 
-Copyright (c) 2015, Zher Huei Lee
+Copyright (c) 2016, Zher Huei Lee
 All rights reserved.
 
 This software is provided 'as-is', without any express or implied

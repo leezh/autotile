@@ -248,32 +248,46 @@ func _init():
 	add_user_signal("editor_finish")
 
 func _editor_input(event):
-	if event.type == InputEvent.MOUSE_MOTION or event.type == InputEvent.MOUSE_BUTTON:
-		var pos = Vector2(event.x, event.y) - get_viewport_transform().get_origin()
-		pos = pos / get_viewport_transform().get_scale() / tile_size
-		var new_hover = Vector2(floor(pos.x), floor(pos.y))
-		if editor_hover != new_hover:
-			update()
-		editor_hover = new_hover
+	var capture = false
+	var button = 0
+	if event.type == InputEvent.MOUSE_MOTION:
 		if event.button_mask & 1:
-			if not has_tile(editor_hover):
-				if not editor_modified:
-					emit_signal("editor_start")
-					editor_modified = true
-				add_tile(editor_hover)
-				data_modified = true
-			return true
-		elif event.button_mask & 2:
-			if has_tile(editor_hover):
-				if not editor_modified:
-					emit_signal("editor_start")
-					editor_modified = true
-				remove_tile(editor_hover)
-				data_modified = true
-			return true
-		elif editor_modified:
-			editor_modified = false
-			emit_signal("editor_finish")
+			button = 1
+		if event.button_mask & 2:
+			button = 2
+	elif event.type == InputEvent.MOUSE_BUTTON:
+		if event.button_index == 1 or event.button_index == 2:
+			button = event.button_index
+			capture = true
+		else:
+			return
+	else:
+		return
+	var pos = Vector2(event.x, event.y) - get_viewport_transform().get_origin()
+	pos = pos / get_viewport_transform().get_scale() / tile_size
+	var new_hover = Vector2(floor(pos.x), floor(pos.y))
+	if editor_hover != new_hover:
+		update()
+	editor_hover = new_hover
+	if button == 1:
+		if not has_tile(editor_hover):
+			if not editor_modified:
+				emit_signal("editor_start")
+				editor_modified = true
+			add_tile(editor_hover)
+			data_modified = true
+	elif button == 2:
+		if has_tile(editor_hover):
+			if not editor_modified:
+				emit_signal("editor_start")
+				editor_modified = true
+			remove_tile(editor_hover)
+			data_modified = true
+	elif editor_modified:
+		editor_modified = false
+		emit_signal("editor_finish")
+	if capture:
+		return true
 
 func get_item_rect():
 	return Rect2(min_pos, max_pos - min_pos)

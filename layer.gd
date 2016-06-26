@@ -43,6 +43,7 @@ export(int, 2, 128) var tile_size = 32 setget _set_tile_size
 export(Vector2) var region_offset = Vector2(0, 0) setget _set_region_offset
 export(int, "RPG Maker Ground", "RPG Maker Wall") var mode = MODE_GROUND setget _set_mode
 export(bool) var solid = false setget _set_solid
+onready var is_ready = true
 var data = {} setget _set_data
 var data_cache = []
 var data_modified = true
@@ -51,6 +52,9 @@ var editor_hover = Vector2(0, 0)
 var editor_modified = false
 var min_pos = Vector2(0, 0)
 var max_pos = Vector2(0, 0)
+
+func _ready():
+	_regen_data()
 
 func _get_property_list():
 	return [{
@@ -73,7 +77,8 @@ func _set(property, value):
 		while i + 1 < value.size():
 			data[Vector2(value[i], value[i + 1])] = 0
 			i += 2
-		_regen_data()
+		if is_ready:
+			_regen_data()
 		return true
 
 func _set_texture(value):
@@ -82,7 +87,8 @@ func _set_texture(value):
 
 func _set_tile_size(value):
 	tile_size = value
-	_regen_data()
+	data_modified = true
+	update()
 
 func _set_region_offset(value):
 	region_offset = value
@@ -94,11 +100,13 @@ func _set_mode(value):
 
 func _set_solid(value):
 	solid = value
-	_regen_data()
+	data_modified = true
+	update()
 
 func _set_data(value):
 	data = value
-	_regen_data()
+	data_modified = true
+	update()
 
 func _regen_data():
 	var shape
@@ -134,7 +142,7 @@ func _regen_data():
 		if data.has(pos + Vector2( 1,  1)):
 			mask = mask | MASK_BR
 		data[pos] = mask
-		if solid:
+		if solid and is_inside_tree() and not get_tree().is_editor_hint():
 			var ofs = (pos + Vector2(0.5, 0.5)) * tile_size
 			add_shape(shape, Matrix32(0, ofs))
 	data_modified = false
@@ -264,7 +272,8 @@ func _editor_input(event):
 	else:
 		return
 	var pos = Vector2(event.x, event.y) - get_viewport_transform().get_origin()
-	pos = pos / get_viewport_transform().get_scale() / tile_size
+	pos = pos / get_viewport_transform().get_scale()
+	pos = get_global_transform().xform_inv(pos) / tile_size
 	var new_hover = Vector2(floor(pos.x), floor(pos.y))
 	if editor_hover != new_hover:
 		update()

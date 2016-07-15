@@ -5,7 +5,7 @@ v1.0
 ![Preview](http://i.imgur.com/VR5Z7Up.png)
 
 This is an addon for the [Godot Engine](https://godotengine.org/)
-(currently the git version is requred) that allows automatic 2D tiling
+(currently the git version is required) that allows automatic 2D tiling
 using RPG Maker's Autotile format.
 
 For more information on the format:

@@ -250,11 +250,9 @@ func update_canvas():
 
 func _gd_21_connect():
 	if old_methods:
-		current.connect("draw", self, "_gd_21_draw")
+		current._gd_21_editor = self
 
 func _gd_21_disconnect():
 	if old_methods:
-		current.disconnect("draw", self, "_gd_21_draw")
+		current._gd_21_editor = null
 
-func _gd_21_draw():
-	forward_draw_over_canvas(current.get_global_transform().inverse(), current)

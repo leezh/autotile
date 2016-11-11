@@ -53,6 +53,9 @@ var data_modified = true
 var min_pos = Vector2(0, 0)
 var max_pos = Vector2(0, 0)
 
+# Backwards compatability. Remove when Godot 3.0 is released.
+var _gd_21_editor
+
 func _ready():
 	_regen_data()
 
@@ -293,6 +296,9 @@ func _draw():
 						rect.pos += test[2] * tile_size
 						draw_texture_rect_region(texture, Rect2(ofs, size), rect)
 						break
+	# Backwards compatability. Remove when Godot 3.0 is released.
+	if _gd_21_editor:
+		_gd_21_editor.forward_draw_over_canvas(get_global_transform().inverse(), self)
 
 func get_item_rect():
 	return Rect2(min_pos * tile_size, (max_pos - min_pos) * tile_size)
@@ -307,3 +313,4 @@ func add_tile(pos):
 func remove_tile(pos):
 	data.erase(pos)
 	data_modified = true
+

@@ -1,6 +1,6 @@
 # Godot AutoTileLayer
 
-v1.0
+v1.1
 
 ![Preview](http://i.imgur.com/VR5Z7Up.png)
 
@@ -11,7 +11,7 @@ using RPG Maker's Autotile format.
 For more information on the format:
 http://blog.rpgmakerweb.com/tutorials/anatomy-of-an-autotile/
 
-Git version of the Godot Engine required:
+Compatible with both Godot 2.1 and git.
 https://github.com/godotengine/godot
 
 Tileset used in preview:
@@ -26,7 +26,10 @@ http://opengameart.org/content/lpc-modified-base-tiles
  4. In the 2D scene editor, create a new node. Type in `AutoTileLayer`
     to find the node to add.
  5. Use the property panel to set up the tileset to use.
- 6. With the node selected, left click adds tiles, right click erases.
+ 6. in the default brush mode, use the left mouse button to draw and
+    right mouse button to erase.
+ 7. Switch to box mode to cover larger areas in one go using the toggle
+    at the top of the viewport or using `B` and `N` keys.
 
 *NOTE*: While RPG Maker's Autotile is a conveninent format to work with
 do remember that most of their official tilesets are licensed for use

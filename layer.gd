@@ -1,4 +1,4 @@
-# Godot AutoTileLayer v1.0
+# Godot AutoTileLayer v1.1
 # https://github.com/leezh/autotile
 #
 # Copyright (c) 2016, Zher Huei Lee
@@ -34,22 +34,22 @@ const MASK_RIGHT = 16
 const MASK_BL = 32
 const MASK_BOTTOM = 64
 const MASK_BR = 128
+const MASK_ALL = 255
 
-const MODE_GROUND = 0
-const MODE_WALL = 1
+const SOLID_NONE = 0
+const SOLID_ALL = 1
+const SOLID_EXCEPT_TOP = 2
 
 export(Texture) var texture setget _set_texture
 export(int, 2, 128) var tile_size = 32 setget _set_tile_size
+export(bool) var draw_center = true setget _set_draw_center
 export(Vector2) var region_offset = Vector2(0, 0) setget _set_region_offset
-export(int, "RPG Maker Ground", "RPG Maker Wall") var mode = MODE_GROUND setget _set_mode
 export(bool) var solid = false setget _set_solid
+export(Vector2) var solid_offset = Vector2(0, 0) setget _set_solid_offset
 onready var is_ready = true
 var data = {} setget _set_data
 var data_cache = []
 var data_modified = true
-var editor_enabled = false
-var editor_hover = Vector2(0, 0)
-var editor_modified = false
 var min_pos = Vector2(0, 0)
 var max_pos = Vector2(0, 0)
 
@@ -94,13 +94,18 @@ func _set_region_offset(value):
 	region_offset = value
 	update()
 
-func _set_mode(value):
-	mode = value
-	update()
-
 func _set_solid(value):
 	solid = value
 	data_modified = true
+	update()
+
+func _set_solid_offset(value):
+	solid_offset = value
+	data_modified = true
+	update()
+
+func _set_draw_center(value):
+	draw_center = value
 	update()
 
 func _set_data(value):
@@ -143,163 +148,154 @@ func _regen_data():
 			mask = mask | MASK_BR
 		data[pos] = mask
 		if solid and is_inside_tree() and not get_tree().is_editor_hint():
-			var ofs = (pos + Vector2(0.5, 0.5)) * tile_size
+			var ofs = (pos + Vector2(0.5, 0.5)) * tile_size + solid_offset
 			add_shape(shape, Matrix32(0, ofs))
 	data_modified = false
 	update()
 
-func _get_corner_tl(mask):
-	var rect = Rect2(region_offset, Vector2(tile_size, tile_size) / 2)
-	rect.pos += Vector2(0, 0)
-	var concave = false
-	if mask & MASK_LEFT and mask & MASK_TOP:
-		if mask & MASK_TL:
-			rect.pos.x += tile_size
-			rect.pos.y += tile_size
-		else:
-			rect.pos.x += tile_size
-			concave = true
-	elif mask & MASK_LEFT:
-		rect.pos.x += tile_size
-	elif mask & MASK_TOP:
-		rect.pos.y += tile_size
-	else:
-		pass
-	if mode == MODE_GROUND and not concave:
-		rect.pos.y += tile_size
-	return rect
-
-func _get_corner_tr(mask):
-	var rect = Rect2(region_offset, Vector2(tile_size, tile_size) / 2)
-	rect.pos += Vector2(tile_size / 2, 0)
-	var concave = false
-	if mask & MASK_RIGHT and mask & MASK_TOP:
-		if mask & MASK_TR:
-			rect.pos.y += tile_size
-		else:
-			rect.pos.x += tile_size
-			concave = true
-	elif mask & MASK_RIGHT:
-		pass
-	elif mask & MASK_TOP:
-		rect.pos.x += tile_size
-		rect.pos.y += tile_size
-	else:
-		rect.pos.x += tile_size
-	if mode == MODE_GROUND and not concave:
-		rect.pos.y += tile_size
-	return rect
-
-func _get_corner_bl(mask):
-	var rect = Rect2(region_offset, Vector2(tile_size, tile_size) / 2)
-	rect.pos += Vector2(0, tile_size / 2)
-	var concave = false
-	if mask & MASK_LEFT and mask & MASK_BOTTOM:
-		if mask & MASK_BL:
-			rect.pos.x += tile_size
-		else:
-			rect.pos.x += tile_size
-			concave = true
-	elif mask & MASK_LEFT:
-		rect.pos.x += tile_size
-		rect.pos.y += tile_size
-	elif mask & MASK_BOTTOM:
-		pass
-	else:
-		rect.pos.y += tile_size
-	if mode == MODE_GROUND and not concave:
-		rect.pos.y += tile_size
-	return rect
-
-func _get_corner_br(mask):
-	var rect = Rect2(region_offset, Vector2(tile_size, tile_size) / 2)
-	rect.pos += Vector2(tile_size / 2, tile_size / 2)
-	var concave = false
-	if mask & MASK_RIGHT and mask & MASK_BOTTOM:
-		if mask & MASK_BR:
-			pass
-		else:
-			rect.pos.x += tile_size
-			concave = true
-	elif mask & MASK_RIGHT:
-		rect.pos.y += tile_size
-	elif mask & MASK_BOTTOM:
-		rect.pos.x += tile_size
-	else:
-		rect.pos.x += tile_size
-		rect.pos.y += tile_size
-	if mode == MODE_GROUND and not concave:
-		rect.pos.y += tile_size
-	return rect
+const CORNERS = [
+	{
+		"offset": Vector2(0, 0),
+		"tests": [
+			[
+				MASK_LEFT | MASK_TOP | MASK_TL,
+				MASK_LEFT | MASK_TOP,
+				Vector2(1, 0)
+			],
+			[
+				MASK_LEFT | MASK_TOP | MASK_TL,
+				MASK_LEFT | MASK_TOP | MASK_TL,
+				Vector2(1, 2)
+			],
+			[
+				MASK_LEFT | MASK_TOP,
+				MASK_LEFT,
+				Vector2(1, 1)
+			],
+			[
+				MASK_LEFT | MASK_TOP,
+				MASK_TOP,
+				Vector2(0, 2)
+			],
+			[
+				MASK_LEFT | MASK_TOP,
+				0,
+				Vector2(0, 1)
+			],
+		],
+	},
+	{
+		"offset": Vector2(1, 0),
+			"tests": [
+			[
+				MASK_RIGHT | MASK_TOP | MASK_TR,
+				MASK_RIGHT | MASK_TOP,
+				Vector2(1, 0)
+			],
+			[
+				MASK_RIGHT | MASK_TOP | MASK_TR,
+				MASK_RIGHT | MASK_TOP | MASK_TR,
+				Vector2(0, 2)
+			],
+			[
+				MASK_RIGHT | MASK_TOP,
+				MASK_RIGHT,
+				Vector2(0, 1)
+			],
+			[
+				MASK_RIGHT | MASK_TOP,
+				MASK_TOP,
+				Vector2(1, 2)
+			],
+			[
+				MASK_RIGHT | MASK_TOP,
+				0,
+				Vector2(1, 1)
+			],
+		],
+	},
+	{
+		"offset": Vector2(0, 1),
+		"tests": [
+			[
+				MASK_LEFT | MASK_BOTTOM | MASK_BL,
+				MASK_LEFT | MASK_BOTTOM,
+				Vector2(1, 0)
+			],
+			[
+				MASK_LEFT | MASK_BOTTOM | MASK_BL,
+				MASK_LEFT | MASK_BOTTOM | MASK_BL,
+				Vector2(1, 1)
+			],
+			[
+				MASK_LEFT | MASK_BOTTOM,
+				MASK_LEFT,
+				Vector2(1, 2)
+			],
+			[
+				MASK_LEFT | MASK_BOTTOM,
+				MASK_BOTTOM,
+				Vector2(0, 1)
+			],
+			[
+				MASK_LEFT | MASK_BOTTOM,
+				0,
+				Vector2(0, 2)
+			],
+		],
+	},
+	{
+		"offset": Vector2(1, 1),
+		"tests": [
+			[
+				MASK_RIGHT | MASK_BOTTOM | MASK_BR,
+				MASK_RIGHT | MASK_BOTTOM,
+				Vector2(1, 0)
+			],
+			[
+				MASK_RIGHT | MASK_BOTTOM | MASK_BR,
+				MASK_RIGHT | MASK_BOTTOM | MASK_BR,
+				Vector2(0, 1)
+			],
+			[
+				MASK_RIGHT | MASK_BOTTOM,
+				MASK_RIGHT,
+				Vector2(0, 2)
+			],
+			[
+				MASK_RIGHT | MASK_BOTTOM,
+				MASK_BOTTOM,
+				Vector2(1, 1)
+			],
+			[
+				MASK_RIGHT | MASK_BOTTOM,
+				0,
+				Vector2(1, 2)
+			],
+		],
+	},
+]
 
 func _draw():
 	if data_modified:
 		_regen_data()
 	if texture != null:
 		for pos in data.keys():
-			var ofs = pos * tile_size
-			var size = Vector2(0.5, 0.5) * tile_size
 			var mask = data[pos]
-			draw_texture_rect_region(texture, Rect2(ofs, size), _get_corner_tl(mask))
-			ofs.x += size.x
-			draw_texture_rect_region(texture, Rect2(ofs, size), _get_corner_tr(mask))
-			ofs.y += size.y
-			draw_texture_rect_region(texture, Rect2(ofs, size), _get_corner_br(mask))
-			ofs.x -= size.x
-			draw_texture_rect_region(texture, Rect2(ofs, size), _get_corner_bl(mask))
-	if editor_enabled:
-		var cursor = Rect2(editor_hover * tile_size, Vector2(1, 1) * tile_size)
-		draw_rect(cursor, Color(1, 1, 1, 0.5))
-
-func _init():
-	add_user_signal("editor_start")
-	add_user_signal("editor_finish")
-
-func _editor_input(event):
-	var capture = false
-	var button = 0
-	if event.type == InputEvent.MOUSE_MOTION:
-		if event.button_mask & 1:
-			button = 1
-		if event.button_mask & 2:
-			button = 2
-	elif event.type == InputEvent.MOUSE_BUTTON:
-		if event.button_index == 1 or event.button_index == 2:
-			button = event.button_index
-			capture = true
-		else:
-			return
-	else:
-		return
-	var pos = Vector2(event.x, event.y) - get_viewport_transform().get_origin()
-	pos = pos / get_viewport_transform().get_scale()
-	pos = get_global_transform().xform_inv(pos) / tile_size
-	var new_hover = Vector2(floor(pos.x), floor(pos.y))
-	if editor_hover != new_hover:
-		update()
-	editor_hover = new_hover
-	if button == 1:
-		if not has_tile(editor_hover):
-			if not editor_modified:
-				emit_signal("editor_start")
-				editor_modified = true
-			add_tile(editor_hover)
-			data_modified = true
-	elif button == 2:
-		if has_tile(editor_hover):
-			if not editor_modified:
-				emit_signal("editor_start")
-				editor_modified = true
-			remove_tile(editor_hover)
-			data_modified = true
-	elif editor_modified:
-		editor_modified = false
-		emit_signal("editor_finish")
-	if capture:
-		return true
+			if not draw_center and mask == MASK_ALL:
+				continue
+			var size = Vector2(tile_size, tile_size) / 2
+			for corner in CORNERS:
+				var ofs = (pos + corner["offset"] / 2) * tile_size
+				var rect = Rect2(region_offset + corner["offset"] * size, size)
+				for test in corner["tests"]:
+					if (mask & test[0]) == test[1]:
+						rect.pos += test[2] * tile_size
+						draw_texture_rect_region(texture, Rect2(ofs, size), rect)
+						break
 
 func get_item_rect():
-	return Rect2(min_pos, max_pos - min_pos)
+	return Rect2(min_pos * tile_size, (max_pos - min_pos) * tile_size)
 
 func has_tile(pos):
 	return data.has(pos)

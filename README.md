@@ -1,3 +1,5 @@
+**Deprecation Notice** This is written for and compatible only with Godot 2.x. Please use Godot's built in auto-tile system for later versions.
+
 # Godot AutoTileLayer
 
 v1.1
@@ -10,9 +12,6 @@ using RPG Maker's Autotile format.
 
 For more information on the format:
 http://blog.rpgmakerweb.com/tutorials/anatomy-of-an-autotile/
-
-Compatible with both Godot 2.1 and git.
-https://github.com/godotengine/godot
 
 Tileset used in preview:
 http://opengameart.org/content/lpc-modified-base-tiles
